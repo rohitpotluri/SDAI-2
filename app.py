@@ -1,12 +1,29 @@
 from flask import Flask, request, render_template
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
+import requests
+import os
 
 app = Flask(__name__)
 
+# Dropbox file URL
+dropbox_url = "https://www.dropbox.com/scl/fi/ay9hr2f3lng4ot6jvilx9/TinyBERT_model.pt?rlkey=ftszbz8tq0zunmdti5twciqex&st=m89asrzl&dl=1"
+output_file = "TinyBERT_model.pt"
+
+# Check if the model file exists, otherwise download it
+if not os.path.exists(output_file):
+    print("Downloading model from Dropbox...")
+    response = requests.get(dropbox_url, stream=True)
+    with open(output_file, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+    print("Download completed.")
+else:
+    print("Model file already exists locally.")
+
 # Load the saved model
-model_path = "TinyBERT_model.pt"
-model = torch.load(model_path)
+model = torch.load(output_file)
 model.eval()
 
 # Load the tokenizer
