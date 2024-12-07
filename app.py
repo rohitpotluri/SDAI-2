@@ -1,10 +1,15 @@
-from flask import Flask, request, render_template
+import os
+import requests
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
-import requests
-import os
 
-app = Flask(__name__)
+# Check environment for Streamlit
+try:
+    import streamlit as st
+    IS_STREAMLIT = True
+except ImportError:
+    from flask import Flask, request, render_template
+    IS_STREAMLIT = False
 
 # Dropbox file URL
 dropbox_url = "https://www.dropbox.com/scl/fi/ay9hr2f3lng4ot6jvilx9/TinyBERT_model.pt?rlkey=ftszbz8tq0zunmdti5twciqex&st=m89asrzl&dl=1"
@@ -55,16 +60,32 @@ def predict_sentiment(review):
     # Convert to sentiment label
     return "Positive" if prediction == 1 else "Negative"
 
-# Flask routes
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Streamlit implementation
+if IS_STREAMLIT:
+    st.title("Sentiment Analysis App")
+    st.write("Enter a review and get its sentiment prediction.")
+    
+    review = st.text_area("Enter your review:")
+    if st.button("Predict Sentiment"):
+        if review.strip():
+            sentiment = predict_sentiment(review)
+            st.write(f"Sentiment: **{sentiment}**")
+        else:
+            st.warning("Please enter a valid review.")
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    review = request.form['review']  # Get review input from the form
-    sentiment = predict_sentiment(review)  # Predict sentiment
-    return render_template('result.html', result=sentiment)
+# Flask implementation
+else:
+    app = Flask(__name__)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    @app.route('/')
+    def index():
+        return render_template('index.html')
+
+    @app.route('/predict', methods=['POST'])
+    def predict():
+        review = request.form['review']  # Get review input from the form
+        sentiment = predict_sentiment(review)  # Predict sentiment
+        return render_template('result.html', result=sentiment)
+
+    if __name__ == '__main__':
+        app.run(debug=True)
